@@ -1,5 +1,5 @@
 import { analyzeMeterPhoto } from './gemini.js';
-import Chart from 'chart.js/auto';
+// Chart is loaded via CDN in index.html
 
 // App State
 let state = JSON.parse(localStorage.getItem('meter_app_state')) || {
