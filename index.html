@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contador Pasos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Dashboard View -->
+        <main id="dashboard" class="view active">
+            <header>
+                <h1>Mi Consumo</h1>
+                <p id="current-date"></p>
+            </header>
+
+            <section class="steps-card">
+                <div class="circular-progress">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" class="bg-circle"></circle>
+                        <circle cx="50" cy="50" r="45" id="progress-circle" class="fg-circle"></circle>
+                    </svg>
+                    <div class="progress-info">
+                        <span id="remaining-steps" class="big-number">0</span>
+                        <span class="label">pasos restantes</span>
+                    </div>
+                </div>
+                <div class="estimate">
+                    <p>Estimación: <span id="estimate-date">Cargando...</span></p>
+                </div>
+            </section>
+
+            <section class="stats-grid">
+                <div class="stat-item pulse">
+                    <span class="stat-label">Semanal</span>
+                    <span id="weekly-avg" class="stat-value">0 kW</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Mensual</span>
+                    <span id="monthly-avg" class="stat-value">0 kW</span>
+                </div>
+            </section>
+
+            <section class="chart-container">
+                <h3>Consumo Histórico</h3>
+                <canvas id="consumptionChart"></canvas>
+            </section>
+
+            <section id="alerts" class="alerts-container">
+                <!-- Unusual peaks will appear here -->
+            </section>
+        </main>
+
+        <!-- Settings View -->
+        <section id="settings" class="view">
+            <header>
+                <h1>Ajustes</h1>
+            </header>
+            <div class="stat-item" style="padding: 1.5rem;">
+                <div class="input-group">
+                    <label for="settings-api-key">Gemini API Key</label>
+                    <input type="password" id="settings-api-key" placeholder="Pega tu clave aquí">
+                </div>
+                <div class="input-group">
+                    <label for="settings-steps">Ajustar Pasos Totales</label>
+                    <input type="number" id="settings-steps">
+                </div>
+                <button id="save-settings" class="btn-primary">Guardar Cambios</button>
+                <p style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 1rem;">
+                    Consigue tu llave en <a href="https://aistudio.google.com/" target="_blank"
+                        style="color: var(--accent-primary)">Google AI Studio</a>.
+                </p>
+            </div>
+
+            <div class="stat-item" style="margin-top: 1rem;">
+                <span class="stat-label">Copia de Seguridad</span>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
+                    <button id="export-data"
+                        style="background: var(--accent-secondary); border: none; color: white; padding: 0.5rem; border-radius: 8px; cursor: pointer;">Exportar
+                        Datos</button>
+                    <label for="import-data"
+                        style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; padding: 0.5rem; border-radius: 8px; cursor: pointer; text-align: center; font-size: 0.8rem;">
+                        Importar Datos
+                        <input type="file" id="import-data" accept=".json" hidden>
+                    </label>
+                </div>
+            </div>
+
+            <div class="stat-item" style="margin-top: 1rem; border-color: var(--danger);">
+                <span class="stat-label" style="color: var(--danger);">Zona de Peligro</span>
+                <button id="reset-app"
+                    style="background: none; border: 1px solid var(--danger); color: var(--danger); padding: 0.5rem; border-radius: 8px; margin-top: 0.5rem; cursor: pointer;">Borrar
+                    todos los datos</button>
+            </div>
+        </section>
+
+        <!-- Onboarding / Setup View -->
+        <section id="onboarding" class="view">
+            <div class="onboarding-card">
+                <h2>Bienvenido</h2>
+                <p>Configura tus pasos iniciales para empezar el seguimiento.</p>
+                <div class="input-group">
+                    <label for="initial-steps">Pasos Totales</label>
+                    <input type="number" id="initial-steps" placeholder="Ej: 5000">
+                </div>
+                <button id="save-initial" class="btn-primary">Empezar</button>
+            </div>
+        </section>
+
+        <!-- Navbar -->
+        <nav class="bottom-nav">
+            <button id="nav-home" class="nav-btn active">
+                <i data-lucide="home"></i>
+                <span>Inicio</span>
+            </button>
+            <button id="nav-camera" class="nav-btn photo-btn">
+                <i data-lucide="camera"></i>
+            </button>
+            <button id="nav-history" class="nav-btn">
+                <i data-lucide="list"></i>
+                <span>Historial</span>
+            </button>
+            <button id="nav-settings" class="nav-btn">
+                <i data-lucide="settings"></i>
+                <span>Ajustes</span>
+            </button>
+        </nav>
+
+        <!-- Camera / Processing Modal -->
+        <div id="camera-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-btn">&times;</span>
+                <h2>Subir Lectura</h2>
+                <p>Haz una foto al contador de luz</p>
+                <label for="camera-input" class="upload-area">
+                    <i data-lucide="image-plus" size="48"></i>
+                    <span>Tocar para subir foto</span>
+                    <input type="file" id="camera-input" accept="image/*" capture="environment" hidden>
+                </label>
+                <div id="processing-state" class="hidden">
+                    <div class="spinner"></div>
+                    <p>La IA está analizando la foto...</p>
+                    <small id="model-status"></small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script type="module" src="/main.js"></script>
+</body>
+
+</html>
