@@ -112,7 +112,26 @@ function initApp() {
     });
 
     importDataInput.addEventListener('change', (e) => {
-        // ... (existing logic)
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const importedState = JSON.parse(event.target.result);
+                if (importedState.onboarded !== undefined) {
+                    state = importedState;
+                    saveState();
+                    alert("Datos importados correctamente");
+                    location.reload();
+                } else {
+                    throw new Error("Formato de backup inválido");
+                }
+            } catch (err) {
+                alert("Error al importar: " + err.message);
+            }
+        };
+        reader.readAsText(file);
     });
 
     simulateDataBtn.addEventListener('click', () => {
