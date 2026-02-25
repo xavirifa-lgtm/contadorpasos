@@ -1,0 +1,17 @@
+{
+    "name": "Contador Pasos",
+    "short_name": "ContadorPasos",
+    "description": "Control de consumo eléctrico con IA",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#0f172a",
+    "theme_color": "#0f172a",
+    "icons": [
+        {
+            "src": "pwa_icon_512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}
