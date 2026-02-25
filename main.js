@@ -230,7 +230,13 @@ function addReading(value, photoBase64) {
         consumption = value - last.value;
     }
 
-    state.readings.push({ date: now, value, consumption });
+    state.readings.push({
+        date: now,
+        value,
+        consumption,
+        allowedSteps: state.allowedSteps,
+        seasonLimit: state.seasonLimit
+    });
 
     saveState();
     updateDashboard();
@@ -259,6 +265,7 @@ function updateDashboard() {
     renderChart();
     detectPeaks();
     renderInitialPhoto();
+    updateHistory();
 }
 
 function renderInitialPhoto() {
@@ -352,6 +359,93 @@ function renderChart() {
             }
         }
     });
+}
+
+function updateHistory() {
+    const historyList = document.getElementById('annual-history-list');
+    if (state.readings.length === 0) {
+        historyList.innerHTML = '<div class="stat-item" style="text-align: center; padding: 2rem;"><p style="color: var(--text-secondary)">Aún no hay lecturas registradas.</p></div>';
+        return;
+    }
+
+    // Group by year
+    const groups = {};
+    state.readings.forEach(r => {
+        const year = new Date(r.date).getFullYear();
+        if (!groups[year]) groups[year] = [];
+        groups[year].push(r);
+    });
+
+    historyList.innerHTML = '';
+    const years = Object.keys(groups).sort((a, b) => b - a);
+
+    years.forEach(year => {
+        const readings = groups[year];
+        const yearCard = document.createElement('div');
+        yearCard.className = 'history-year-card';
+
+        let tableRows = readings.map(r => `
+            <tr>
+                <td>${new Date(r.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</td>
+                <td>${r.value.toLocaleString()}</td>
+                <td>${(r.allowedSteps || state.allowedSteps).toLocaleString()}</td>
+                <td>${(r.seasonLimit || state.seasonLimit).toLocaleString()}</td>
+                <td style="color: var(--accent-primary)">+${r.consumption}</td>
+            </tr>
+        `).join('');
+
+        yearCard.innerHTML = `
+            <div class="year-header">
+                <h2>Temporada ${year}</h2>
+                <button class="btn-csv" data-year="${year}">Descargar CSV</button>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Lectura</th>
+                            <th>Pasos</th>
+                            <th>Límite</th>
+                            <th>Cons.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+        historyList.appendChild(yearCard);
+    });
+
+    // Add CSV Listeners
+    document.querySelectorAll('.btn-csv').forEach(btn => {
+        btn.onclick = () => exportYearToCSV(btn.dataset.year, groups[btn.dataset.year]);
+    });
+}
+
+function exportYearToCSV(year, readings) {
+    const headers = ["Fecha", "Lectura Contador", "Pasos (Carga)", "Limite (Lectura+Pasos)", "Consumido"];
+    const rows = readings.map(r => [
+        new Date(r.date).toLocaleDateString('es-ES'),
+        r.value,
+        r.allowedSteps || state.allowedSteps,
+        r.seasonLimit || state.seasonLimit,
+        r.consumption
+    ]);
+
+    let csvContent = "data:text/csv;charset=utf-8,"
+        + headers.join(",") + "\n"
+        + rows.map(e => e.join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `consumo_electrico_${year}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 function saveState() {
