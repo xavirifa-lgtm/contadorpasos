@@ -116,26 +116,27 @@ function initApp() {
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => {
             try {
                 const importedState = JSON.parse(event.target.result);
                 if (importedState.onboarded !== undefined) {
                     state = importedState;
                     saveState();
-                    alert("Datos importados correctamente");
+                    await showDialog("Importación Exitosa", "Tus datos han sido recuperados correctamente.");
                     location.reload();
                 } else {
                     throw new Error("Formato de backup inválido");
                 }
             } catch (err) {
-                alert("Error al importar: " + err.message);
+                showDialog("Error", "No se pudo importar el archivo: " + err.message);
             }
         };
         reader.readAsText(file);
     });
 
-    simulateDataBtn.addEventListener('click', () => {
-        if (confirm("Se cargarán 20 lecturas de prueba. Esto borrará el historial actual. ¿Continuar?")) {
+    simulateDataBtn.addEventListener('click', async () => {
+        const ok = await showDialog("Simular Datos", "¿Se cargarán 20 lecturas de prueba. Esto borrará el historial actual. ¿Continuar?", true);
+        if (ok) {
             simulateData();
         }
     });
@@ -143,6 +144,33 @@ function initApp() {
     // Camera Handling
     cameraInput.addEventListener('change', handlePhotoUpload);
     document.querySelector('.close-btn').addEventListener('click', () => cameraModal.classList.remove('active'));
+}
+
+function showDialog(title, message, isConfirm = false) {
+    return new Promise((resolve) => {
+        const dialog = document.getElementById('custom-dialog');
+        const titleEl = document.getElementById('dialog-title');
+        const messageEl = document.getElementById('dialog-message');
+        const confirmBtn = document.getElementById('dialog-confirm');
+        const cancelBtn = document.getElementById('dialog-cancel');
+
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+
+        cancelBtn.classList.toggle('hidden', !isConfirm);
+
+        dialog.classList.add('active');
+
+        const close = (result) => {
+            dialog.classList.remove('active');
+            confirmBtn.onclick = null;
+            cancelBtn.onclick = null;
+            resolve(result);
+        };
+
+        confirmBtn.onclick = () => close(true);
+        cancelBtn.onclick = () => close(false);
+    });
 }
 
 function showView(id) {
@@ -405,7 +433,7 @@ function updateHistory() {
             <div class="year-header">
                 <h2>Temporada ${year}</h2>
                 <div style="display: flex; gap: 0.5rem;">
-                    ${state.initialPhoto ? `<button class="btn-csv" id="view-initial-btn" style="background: rgba(129, 140, 248, 0.1); border-color: var(--accent-secondary); color: var(--accent-secondary);">📷 Foto Inicial</button>` : ''}
+                    ${state.initialPhoto ? `<button class="btn-csv btn-view-photo" style="background: rgba(129, 140, 248, 0.1); border-color: var(--accent-secondary); color: var(--accent-secondary);">📷 Foto Inicial</button>` : ''}
                     <button class="btn-csv" data-year="${year}">Descargar CSV</button>
                 </div>
             </div>
@@ -437,11 +465,10 @@ function updateHistory() {
         historyList.appendChild(yearCard);
     });
 
-    // Add Photo Toggle Listener
-    const viewPhotoBtn = document.getElementById('view-initial-btn');
-    if (viewPhotoBtn) {
-        viewPhotoBtn.onclick = toggleInitialPhoto;
-    }
+    // Add Photo Toggle Listeners (using class for multi-year support)
+    document.querySelectorAll('.btn-view-photo').forEach(btn => {
+        btn.onclick = toggleInitialPhoto;
+    });
 
     // Add CSV Listeners
     document.querySelectorAll('.btn-csv').forEach(btn => {
@@ -509,8 +536,9 @@ function simulateData() {
     }
 
     saveState();
-    alert("Datos simulados con éxito");
-    location.reload();
+    showDialog("Simulación Lista", "Se han generado 20 lecturas de prueba con éxito.").then(() => {
+        location.reload();
+    });
 }
 
 function saveState() {

@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=1.2">
+    <link rel="stylesheet" href="style.css?v=1.4">
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -181,9 +181,20 @@
                 </div>
             </div>
         </div>
+        <!-- Custom Dialog Modal -->
+        <div id="custom-dialog" class="modal">
+            <div class="modal-content dialog-content">
+                <h2 id="dialog-title">Aviso</h2>
+                <p id="dialog-message"></p>
+                <div class="dialog-actions">
+                    <button id="dialog-cancel" class="btn-secondary hidden">Cancelar</button>
+                    <button id="dialog-confirm" class="btn-primary">Aceptar</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script type="module" src="main.js?v=1.2"></script>
+    <script type="module" src="main.js?v=1.4"></script>
 </body>
 
 </html>
