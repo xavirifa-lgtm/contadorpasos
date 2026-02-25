@@ -23,7 +23,7 @@
         <!-- Dashboard View -->
         <main id="dashboard" class="view active">
             <header>
-                <h1>Mi Consumo</h1>
+                <h1>Contador Pasos Camping El Sirena Dorada</h1>
                 <p id="current-date"></p>
             </header>
 
@@ -106,6 +106,13 @@
                 </div>
             </div>
 
+            <div class="stat-item" style="margin-top: 1rem; border-color: var(--warning);">
+                <span class="stat-label" style="color: var(--warning);">Pruebas</span>
+                <button id="simulate-data"
+                    style="background: none; border: 1px solid var(--warning); color: var(--warning); padding: 0.5rem; border-radius: 8px; margin-top: 0.5rem; cursor: pointer; width: 100%;">Generar
+                    20 lecturas de prueba</button>
+            </div>
+
             <div class="stat-item" style="margin-top: 1rem; border-color: var(--danger);">
                 <span class="stat-label" style="color: var(--danger);">Zona de Peligro</span>
                 <button id="reset-app"
@@ -148,8 +155,9 @@
                 <i data-lucide="home"></i>
                 <span>Inicio</span>
             </button>
-            <button id="nav-camera" class="nav-btn photo-btn">
+            <button id="nav-camera" class="nav-btn">
                 <i data-lucide="camera"></i>
+                <span>Cámara</span>
             </button>
             <button id="nav-history" class="nav-btn">
                 <i data-lucide="list"></i>

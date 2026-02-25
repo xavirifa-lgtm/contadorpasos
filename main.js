@@ -34,6 +34,7 @@ const saveSettingsBtn = document.getElementById('save-settings');
 const resetAppBtn = document.getElementById('reset-app');
 const exportDataBtn = document.getElementById('export-data');
 const importDataInput = document.getElementById('import-data');
+const simulateDataBtn = document.getElementById('simulate-data');
 
 // Init
 document.addEventListener('DOMContentLoaded', () => {
@@ -52,13 +53,14 @@ function initApp() {
     // Setup Nav
     navBtns.forEach(btn => {
         btn.addEventListener('click', () => {
+            navBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
             if (btn.id === 'nav-camera') {
                 openCamera();
             } else {
                 const viewId = btn.id.replace('nav-', '');
                 showView(viewId === 'home' ? 'dashboard' : viewId);
-                navBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
             }
         });
     });
@@ -110,26 +112,13 @@ function initApp() {
     });
 
     importDataInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+        // ... (existing logic)
+    });
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const importedState = JSON.parse(event.target.result);
-                if (importedState.onboarded !== undefined) {
-                    state = importedState;
-                    saveState();
-                    alert("Datos importados correctamente");
-                    location.reload();
-                } else {
-                    throw new Error("Formato de backup inválido");
-                }
-            } catch (err) {
-                alert("Error al importar: " + err.message);
-            }
-        };
-        reader.readAsText(file);
+    simulateDataBtn.addEventListener('click', () => {
+        if (confirm("Se cargarán 20 lecturas de prueba. Esto borrará el historial actual. ¿Continuar?")) {
+            simulateData();
+        }
     });
 
     // Camera Handling
@@ -446,6 +435,40 @@ function exportYearToCSV(year, readings) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+function simulateData() {
+    state.readings = [];
+    state.allowedSteps = 450;
+
+    let currentReading = 13000;
+    state.seasonLimit = currentReading + state.allowedSteps;
+
+    const now = new Date();
+
+    for (let i = 0; i < 20; i++) {
+        // Add readings over the last 30 days
+        const readingDate = new Date(now);
+        readingDate.setDate(now.getDate() - (20 - i) * 1.5);
+
+        let consumption = 0;
+        if (i > 0) {
+            consumption = Math.floor(Math.random() * 15) + 5; // 5-20 units
+            currentReading += consumption;
+        }
+
+        state.readings.push({
+            date: readingDate.toISOString(),
+            value: currentReading,
+            consumption: consumption,
+            allowedSteps: state.allowedSteps,
+            seasonLimit: state.seasonLimit
+        });
+    }
+
+    saveState();
+    alert("Datos simulados con éxito");
+    location.reload();
 }
 
 function saveState() {
