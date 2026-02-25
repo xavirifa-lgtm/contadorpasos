@@ -68,13 +68,17 @@ function initApp() {
     // Onboarding
     document.getElementById('save-initial').addEventListener('click', () => {
         const steps = parseFloat(document.getElementById('initial-steps').value);
+        const apiKey = document.getElementById('onboarding-api-key').value;
+
         if (steps > 0) {
             state.allowedSteps = steps;
             state.onboarded = true;
-            state.apiKey = prompt("Introduce tu Gemini API Key (tier gratuito):") || '';
+            state.apiKey = apiKey || '';
             saveState();
             showView('dashboard');
             updateDashboard();
+        } else {
+            showDialog("Error", "Por favor, introduce un valor de pasos válido.");
         }
     });
 
@@ -82,18 +86,18 @@ function initApp() {
     saveSettingsBtn.addEventListener('click', () => {
         state.apiKey = settingsApiKey.value;
         state.allowedSteps = parseFloat(settingsSteps.value) || state.allowedSteps;
-        // Re-calculate limit if there are readings
         if (state.readings.length > 0) {
             state.seasonLimit = state.readings[0].value + state.allowedSteps;
         }
         saveState();
-        alert("Configuración guardada");
+        showDialog("Guardado", "Configuración actualizada correctamente.");
         showView('dashboard');
         updateDashboard();
     });
 
-    resetAppBtn.addEventListener('click', () => {
-        if (confirm("¿Estás seguro de que quieres borrar TODOS los datos? Esta acción no se puede deshacer.")) {
+    resetAppBtn.addEventListener('click', async () => {
+        const ok = await showDialog("Borrar Todo", "¿Estás seguro de que quieres borrar TODOS los datos? Esta acción no se puede deshacer.", true);
+        if (ok) {
             localStorage.removeItem('meter_app_state');
             location.reload();
         }
