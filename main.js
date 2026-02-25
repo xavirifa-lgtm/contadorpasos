@@ -392,15 +392,19 @@ function updateHistory() {
         const yearCard = document.createElement('div');
         yearCard.className = 'history-year-card';
 
-        let tableRows = readings.map(r => `
-            <tr>
-                <td>${new Date(r.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</td>
-                <td>${r.value.toLocaleString()}</td>
-                <td>${(r.allowedSteps || state.allowedSteps).toLocaleString()}</td>
-                <td>${(r.seasonLimit || state.seasonLimit).toLocaleString()}</td>
-                <td style="color: var(--accent-primary)">+${r.consumption}</td>
-            </tr>
-        `).join('');
+        let tableRows = readings.map(r => {
+            const availableSteps = Math.max(0, (r.seasonLimit || state.seasonLimit) - r.value);
+            const totalSum = r.value + availableSteps;
+            return `
+                <tr>
+                    <td>${new Date(r.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</td>
+                    <td>${r.value.toLocaleString()}</td>
+                    <td>${Math.round(availableSteps).toLocaleString()}</td>
+                    <td>${totalSum.toLocaleString()}</td>
+                    <td style="color: var(--accent-primary)">+${r.consumption}</td>
+                </tr>
+            `;
+        }).join('');
 
         yearCard.innerHTML = `
             <div class="year-header">
@@ -414,7 +418,7 @@ function updateHistory() {
                             <th>Fecha</th>
                             <th>Lectura</th>
                             <th>Pasos</th>
-                            <th>Límite</th>
+                            <th>Total</th>
                             <th>Cons.</th>
                         </tr>
                     </thead>
@@ -434,14 +438,17 @@ function updateHistory() {
 }
 
 function exportYearToCSV(year, readings) {
-    const headers = ["Fecha", "Lectura Contador", "Pasos (Carga)", "Limite (Lectura+Pasos)", "Consumido"];
-    const rows = readings.map(r => [
-        new Date(r.date).toLocaleDateString('es-ES'),
-        r.value,
-        r.allowedSteps || state.allowedSteps,
-        r.seasonLimit || state.seasonLimit,
-        r.consumption
-    ]);
+    const headers = ["Fecha", "Lectura Contador", "Pasos Disponibles", "Consumo Total (Sum)", "Consumido"];
+    const rows = readings.map(r => {
+        const availableSteps = Math.max(0, (r.seasonLimit || state.seasonLimit) - r.value);
+        return [
+            new Date(r.date).toLocaleDateString('es-ES'),
+            r.value,
+            Math.round(availableSteps),
+            r.value + availableSteps,
+            r.consumption
+        ];
+    });
 
     let csvContent = "data:text/csv;charset=utf-8,"
         + headers.join(",") + "\n"
