@@ -483,6 +483,9 @@ function simulateData() {
     let currentReading = 13000;
     state.seasonLimit = currentReading + state.allowedSteps;
 
+    // Sample placeholder image for simulation
+    state.initialPhoto = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+
     const now = new Date();
 
     for (let i = 0; i < 20; i++) {
