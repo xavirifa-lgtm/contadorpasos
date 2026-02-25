@@ -5,9 +5,10 @@ import { analyzeMeterPhoto } from './gemini.js';
 let state = JSON.parse(localStorage.getItem('meter_app_state')) || {
     onboarded: false,
     apiKey: '',
-    initialSteps: 0,
-    currentSteps: 0,
-    readings: [], // { date, value, consumption }
+    allowedSteps: 0, // Total steps given for the season
+    seasonLimit: 0,  // initialReading + allowedSteps
+    initialPhoto: '', // Base64 of the first photo
+    readings: [],    // { date, value, consumption }
 };
 
 let chart = null;
@@ -66,11 +67,8 @@ function initApp() {
     document.getElementById('save-initial').addEventListener('click', () => {
         const steps = parseFloat(document.getElementById('initial-steps').value);
         if (steps > 0) {
-            state.initialSteps = steps;
-            state.currentSteps = steps;
+            state.allowedSteps = steps;
             state.onboarded = true;
-            // Note: In a real app we'd ask for API key here or in settings
-            // For now we assume user will provide it or we use a placeholder
             state.apiKey = prompt("Introduce tu Gemini API Key (tier gratuito):") || '';
             saveState();
             showView('dashboard');
@@ -81,7 +79,11 @@ function initApp() {
     // Settings Actions
     saveSettingsBtn.addEventListener('click', () => {
         state.apiKey = settingsApiKey.value;
-        state.initialSteps = parseFloat(settingsSteps.value) || state.initialSteps;
+        state.allowedSteps = parseFloat(settingsSteps.value) || state.allowedSteps;
+        // Re-calculate limit if there are readings
+        if (state.readings.length > 0) {
+            state.seasonLimit = state.readings[0].value + state.allowedSteps;
+        }
         saveState();
         alert("Configuración guardada");
         showView('dashboard');
@@ -143,7 +145,7 @@ function showView(id) {
         // Sync settings inputs when entering settings view
         if (id === 'settings') {
             settingsApiKey.value = state.apiKey;
-            settingsSteps.value = state.initialSteps;
+            settingsSteps.value = state.allowedSteps;
         }
     }
 }
@@ -165,7 +167,7 @@ async function handlePhotoUpload(e) {
             modelStatusEl.textContent = status;
         });
 
-        addReading(result.reading);
+        addReading(result.reading, compressedBase64);
         cameraModal.classList.remove('active');
     } catch (err) {
         alert("Error: " + err.message);
@@ -214,17 +216,20 @@ async function compressImage(file) {
     });
 }
 
-function addReading(value) {
+function addReading(value, photoBase64) {
     const now = new Date().toISOString();
     let consumption = 0;
 
-    if (state.readings.length > 0) {
+    if (state.readings.length === 0) {
+        // First reading of the season
+        state.seasonLimit = value + state.allowedSteps;
+        state.initialPhoto = photoBase64; // Save the first photo
+        consumption = 0; // First reading is the baseline
+    } else {
         const last = state.readings[state.readings.length - 1];
         consumption = value - last.value;
     }
 
-    // Deduct from current steps
-    state.currentSteps -= consumption;
     state.readings.push({ date: now, value, consumption });
 
     saveState();
@@ -234,16 +239,37 @@ function addReading(value) {
 function updateDashboard() {
     document.getElementById('current-date').textContent = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
 
+    if (state.readings.length === 0) {
+        remainingStepsEl.textContent = state.allowedSteps;
+        progressCircle.style.strokeDashoffset = 283;
+        return;
+    }
+
+    const latest = state.readings[state.readings.length - 1].value;
+    const currentSteps = Math.max(0, state.seasonLimit - latest);
+
     // Progress Circle
-    const percent = Math.max(0, (state.currentSteps / state.initialSteps) * 100);
+    const percent = Math.max(0, (currentSteps / state.allowedSteps) * 100);
     const offset = 283 - (283 * percent) / 100;
     progressCircle.style.strokeDashoffset = offset;
-    remainingStepsEl.textContent = Math.round(state.currentSteps);
+    remainingStepsEl.textContent = Math.round(currentSteps);
 
     // Stats
     calculateStats();
     renderChart();
     detectPeaks();
+    renderInitialPhoto();
+}
+
+function renderInitialPhoto() {
+    const section = document.getElementById('initial-photo-section');
+    const img = document.getElementById('initial-photo-display');
+    if (state.initialPhoto) {
+        section.classList.remove('hidden');
+        img.src = `data:image/jpeg;base64,${state.initialPhoto}`;
+    } else {
+        section.classList.add('hidden');
+    }
 }
 
 function calculateStats() {
@@ -260,7 +286,9 @@ function calculateStats() {
 
     // Estimation
     if (dailyAvg > 0) {
-        const daysLeft = state.currentSteps / dailyAvg;
+        const latest = state.readings[state.readings.length - 1].value;
+        const currentSteps = state.seasonLimit - latest;
+        const daysLeft = currentSteps / dailyAvg;
         const estDate = new Date();
         estDate.setDate(estDate.getDate() + daysLeft);
         estimateDateEl.textContent = estDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
