@@ -272,18 +272,13 @@ function updateDashboard() {
     calculateStats();
     renderChart();
     detectPeaks();
-    renderInitialPhoto();
     updateHistory();
 }
 
-function renderInitialPhoto() {
-    const section = document.getElementById('initial-photo-section');
-    const img = document.getElementById('initial-photo-display');
-    if (state.initialPhoto) {
-        section.classList.remove('hidden');
-        img.src = `data:image/jpeg;base64,${state.initialPhoto}`;
-    } else {
-        section.classList.add('hidden');
+function toggleInitialPhoto() {
+    const photoContainer = document.getElementById('initial-photo-container');
+    if (photoContainer) {
+        photoContainer.classList.toggle('hidden');
     }
 }
 
@@ -393,14 +388,14 @@ function updateHistory() {
         yearCard.className = 'history-year-card';
 
         let tableRows = readings.map(r => {
-            const availableSteps = Math.max(0, (r.seasonLimit || state.seasonLimit) - r.value);
-            const totalSum = r.value + availableSteps;
+            const limit = r.seasonLimit || state.seasonLimit;
+            const availableSteps = Math.max(0, limit - r.value);
             return `
                 <tr>
                     <td>${new Date(r.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</td>
+                    <td>${limit.toLocaleString()}</td>
                     <td>${r.value.toLocaleString()}</td>
-                    <td>${Math.round(availableSteps).toLocaleString()}</td>
-                    <td>${totalSum.toLocaleString()}</td>
+                    <td style="font-weight: 600;">${Math.round(availableSteps).toLocaleString()}</td>
                     <td style="color: var(--accent-primary)">+${r.consumption}</td>
                 </tr>
             `;
@@ -409,16 +404,27 @@ function updateHistory() {
         yearCard.innerHTML = `
             <div class="year-header">
                 <h2>Temporada ${year}</h2>
-                <button class="btn-csv" data-year="${year}">Descargar CSV</button>
+                <div style="display: flex; gap: 0.5rem;">
+                    ${state.initialPhoto ? `<button class="btn-csv" id="view-initial-btn" style="background: rgba(129, 140, 248, 0.1); border-color: var(--accent-secondary); color: var(--accent-secondary);">📷 Foto Inicial</button>` : ''}
+                    <button class="btn-csv" data-year="${year}">Descargar CSV</button>
+                </div>
             </div>
+            
+            ${state.initialPhoto ? `
+            <div id="initial-photo-container" class="hidden" style="margin-bottom: 1.5rem; animation: fadeIn 0.3s ease;">
+                <img src="${state.initialPhoto}" style="width: 100%; border-radius: 16px; border: 1px solid var(--glass-border);">
+                <p style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.5rem; text-align: center;">Referencia de inicio de temporada</p>
+            </div>
+            ` : ''}
+
             <div class="table-responsive">
                 <table>
                     <thead>
                         <tr>
                             <th>Fecha</th>
+                            <th>Total</th>
                             <th>Lectura</th>
                             <th>Pasos</th>
-                            <th>Total</th>
                             <th>Cons.</th>
                         </tr>
                     </thead>
@@ -431,6 +437,12 @@ function updateHistory() {
         historyList.appendChild(yearCard);
     });
 
+    // Add Photo Toggle Listener
+    const viewPhotoBtn = document.getElementById('view-initial-btn');
+    if (viewPhotoBtn) {
+        viewPhotoBtn.onclick = toggleInitialPhoto;
+    }
+
     // Add CSV Listeners
     document.querySelectorAll('.btn-csv').forEach(btn => {
         btn.onclick = () => exportYearToCSV(btn.dataset.year, groups[btn.dataset.year]);
@@ -438,14 +450,15 @@ function updateHistory() {
 }
 
 function exportYearToCSV(year, readings) {
-    const headers = ["Fecha", "Lectura Contador", "Pasos Disponibles", "Consumo Total (Sum)", "Consumido"];
+    const headers = ["Fecha", "Limite Temporada", "Lectura Contador", "Pasos Disponibles", "Consumido"];
     const rows = readings.map(r => {
-        const availableSteps = Math.max(0, (r.seasonLimit || state.seasonLimit) - r.value);
+        const limit = r.seasonLimit || state.seasonLimit;
+        const availableSteps = Math.max(0, limit - r.value);
         return [
             new Date(r.date).toLocaleDateString('es-ES'),
+            limit,
             r.value,
             Math.round(availableSteps),
-            r.value + availableSteps,
             r.consumption
         ];
     });
